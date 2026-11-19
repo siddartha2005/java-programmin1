@@ -1,0 +1,338 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.io.*;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
+public class CampusEventApp extends JFrame {
+
+    JTextField id = new JTextField(12);
+    JTextField name = new JTextField(12);
+    JTextField dept = new JTextField(12);
+    JTextField contact = new JTextField(12);
+
+    JComboBox<String> event = new JComboBox<>(
+        new String[]{"Hackathon", "Sports", "Cultural"}
+    );
+
+    JButton register = new JButton("Register");
+    JButton filter = new JButton("Filter");
+    JButton export = new JButton("Export");
+    JButton next = new JButton("Next");
+    JButton previous = new JButton("Previous");
+
+    DefaultTableModel model = new DefaultTableModel(
+        new String[]{
+            "Student ID", "Student Name",
+            "Department", "Event", "Contact"
+        }, 0
+    );
+
+    JTable table = new JTable(model);
+
+    RegistrationDAO dao = new RegistrationDAO();
+
+    int page = 0;
+    int limit = 100;
+
+    public CampusEventApp() {
+
+        setTitle("Campus Event Registration");
+        setLayout(new BorderLayout());
+
+        JPanel form = new JPanel(new GridLayout(6, 2, 5, 5));
+
+        form.add(new JLabel("Student ID"));
+        form.add(id);
+
+        form.add(new JLabel("Student Name"));
+        form.add(name);
+
+        form.add(new JLabel("Department"));
+        form.add(dept);
+
+        form.add(new JLabel("Event"));
+        form.add(event);
+
+        form.add(new JLabel("Contact"));
+        form.add(contact);
+
+        form.add(register);
+        form.add(filter);
+
+        JMenuBar bar = new JMenuBar();
+
+        JMenu file = new JMenu("File");
+
+        JMenuItem exportItem = new JMenuItem("Export");
+        JMenuItem exit = new JMenuItem("Exit");
+
+        file.add(exportItem);
+        file.add(exit);
+
+        bar.add(file);
+        setJMenuBar(bar);
+
+        JPanel bottom = new JPanel();
+
+        bottom.add(previous);
+        bottom.add(next);
+        bottom.add(export);
+
+        add(form, BorderLayout.NORTH);
+        add(new JScrollPane(table), BorderLayout.CENTER);
+        add(bottom, BorderLayout.SOUTH);
+
+        register.addActionListener(e -> registerStudent());
+
+        filter.addActionListener(e -> {
+            page = 0;
+            loadData();
+        });
+
+        next.addActionListener(e -> {
+            page++;
+            loadPage();
+        });
+
+        previous.addActionListener(e -> {
+            if (page > 0) {
+                page--;
+                loadPage();
+            }
+        });
+
+        export.addActionListener(e -> exportData());
+
+        exportItem.addActionListener(e -> exportData());
+
+        exit.addActionListener(e -> dispose());
+
+        setSize(750, 500);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setVisible(true);
+
+        loadData();
+    }
+
+    void registerStudent() {
+
+        String studentId = id.getText().trim();
+        String studentName = name.getText().trim();
+        String department = dept.getText().trim();
+        String selectedEvent = (String) event.getSelectedItem();
+        String phone = contact.getText().trim();
+
+        if (studentId.isEmpty() ||
+            studentName.isEmpty() ||
+            department.isEmpty() ||
+            phone.isEmpty()) {
+
+            JOptionPane.showMessageDialog(
+                this, "Please fill all fields"
+            );
+
+            return;
+        }
+
+        register.setEnabled(false);
+
+        new SwingWorker<Boolean, Void>() {
+
+            protected Boolean doInBackground() {
+
+                return dao.register(
+                    studentId,
+                    studentName,
+                    department,
+                    selectedEvent,
+                    phone
+                );
+            }
+
+            protected void done() {
+
+                register.setEnabled(true);
+
+                try {
+
+                    if (get()) {
+
+                        JOptionPane.showMessageDialog(
+                            CampusEventApp.this,
+                            "Registration Successful"
+                        );
+
+                        loadData();
+
+                    } else {
+
+                        JOptionPane.showMessageDialog(
+                            CampusEventApp.this,
+                            "Duplicate Registration or Database Error"
+                        );
+                    }
+
+                } catch (Exception e) {
+
+                    JOptionPane.showMessageDialog(
+                        CampusEventApp.this,
+                        "Registration Failed"
+                    );
+                }
+            }
+
+        }.execute();
+    }
+
+    void loadData() {
+
+        String selectedEvent = (String) event.getSelectedItem();
+
+        filter.setEnabled(false);
+
+        new SwingWorker<List<String[]>, Void>() {
+
+            protected List<String[]> doInBackground()
+                    throws Exception {
+
+                return dao.getRegistrations(selectedEvent);
+            }
+
+            protected void done() {
+
+                filter.setEnabled(true);
+
+                try {
+
+                    model.setRowCount(0);
+
+                    for (String[] row : get()) {
+                        model.addRow(row);
+                    }
+
+                } catch (Exception e) {
+
+                    JOptionPane.showMessageDialog(
+                        CampusEventApp.this,
+                        "Unable to Load Records"
+                    );
+                }
+            }
+
+        }.execute();
+    }
+
+    void loadPage() {
+
+        next.setEnabled(false);
+        previous.setEnabled(false);
+
+        new SwingWorker<List<String[]>, Void>() {
+
+            protected List<String[]> doInBackground()
+                    throws Exception {
+
+                return dao.getPage(limit, page * limit);
+            }
+
+            protected void done() {
+
+                next.setEnabled(true);
+                previous.setEnabled(true);
+
+                try {
+
+                    List<String[]> rows = get();
+
+                    if (rows.isEmpty() && page > 0) {
+                        page--;
+                        JOptionPane.showMessageDialog(
+                            CampusEventApp.this,
+                            "No More Records"
+                        );
+                        return;
+                    }
+
+                    model.setRowCount(0);
+
+                    for (String[] row : rows) {
+                        model.addRow(row);
+                    }
+
+                } catch (Exception e) {
+
+                    JOptionPane.showMessageDialog(
+                        CampusEventApp.this,
+                        "Unable to Load Page"
+                    );
+                }
+            }
+
+        }.execute();
+    }
+
+    void exportData() {
+
+        JFileChooser chooser = new JFileChooser();
+
+        chooser.setSelectedFile(
+            new File("registrations.csv")
+        );
+
+        if (chooser.showSaveDialog(this) ==
+            JFileChooser.APPROVE_OPTION) {
+
+            File file = chooser.getSelectedFile();
+
+            try (PrintWriter pw = new PrintWriter(file)) {
+
+                for (int i = 0; i < model.getColumnCount(); i++) {
+
+                    pw.print(model.getColumnName(i));
+
+                    if (i < model.getColumnCount() - 1)
+                        pw.print(",");
+                }
+
+                pw.println();
+
+                for (int i = 0; i < model.getRowCount(); i++) {
+
+                    for (int j = 0;
+                         j < model.getColumnCount(); j++) {
+
+                        String value = String.valueOf(
+                            model.getValueAt(i, j)
+                        );
+
+                        pw.print("\"" +
+                            value.replace("\"", "\"\"") + "\"");
+
+                        if (j < model.getColumnCount() - 1)
+                            pw.print(",");
+                    }
+
+                    pw.println();
+                }
+
+                JOptionPane.showMessageDialog(
+                    this, "Export Successful"
+                );
+
+            } catch (Exception e) {
+
+                JOptionPane.showMessageDialog(
+                    this, "Export Failed"
+                );
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+
+        SwingUtilities.invokeLater(CampusEventApp::new);
+    }
+}
