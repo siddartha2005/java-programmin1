@@ -1,0 +1,105 @@
+import java.sql.*;
+import java.util.*;
+
+public class RegistrationDAO {
+
+    public boolean register(
+        String id,
+        String name,
+        String dept,
+        String event,
+        String contact
+    ) {
+
+        String sql =
+            "INSERT INTO registrations " +
+            "(student_id, student_name, department, event_name, contact) " +
+            "VALUES (?, ?, ?, ?, ?)";
+
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, id);
+            ps.setString(2, name);
+            ps.setString(3, dept);
+            ps.setString(4, event);
+            ps.setString(5, contact);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLIntegrityConstraintViolationException e) {
+            return false;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public List<String[]> getRegistrations(String event)
+            throws SQLException {
+
+        List<String[]> list = new ArrayList<>();
+
+        String sql =
+            "SELECT student_id, student_name, department, " +
+            "event_name, contact FROM registrations " +
+            "WHERE event_name = ?";
+
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, event);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+
+                    list.add(new String[]{
+                        rs.getString(1),
+                        rs.getString(2),
+                        rs.getString(3),
+                        rs.getString(4),
+                        rs.getString(5)
+                    });
+                }
+            }
+        }
+
+        return list;
+    }
+
+    public List<String[]> getPage(int limit, int offset)
+            throws SQLException {
+
+        List<String[]> list = new ArrayList<>();
+
+        String sql =
+            "SELECT student_id, student_name, department, " +
+            "event_name, contact FROM registrations " +
+            "ORDER BY id LIMIT ? OFFSET ?";
+
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, limit);
+            ps.setInt(2, offset);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+
+                    list.add(new String[]{
+                        rs.getString(1),
+                        rs.getString(2),
+                        rs.getString(3),
+                        rs.getString(4),
+                        rs.getString(5)
+                    });
+                }
+            }
+        }
+
+        return list;
+    }
+}
