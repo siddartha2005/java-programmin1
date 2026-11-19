@@ -1,0 +1,26 @@
+import java.sql.*;
+
+public class FeeService {
+
+    public boolean pay(String regNo, double amount) {
+
+        if (regNo.isEmpty() || amount <= 0)
+            return false;
+
+        String sql = "INSERT INTO fees VALUES (?, ?)";
+
+        try (Connection con = DriverManager.getConnection(
+                "jdbc:mysql://localhost:3306/college",
+                "root", "");
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, regNo);
+            ps.setDouble(2, amount);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+}
