@@ -1,0 +1,74 @@
+import java.awt.*;
+import java.awt.event.*;
+
+public class FeeWindow extends Frame {
+
+    TextField regNo = new TextField(15);
+    TextField amount = new TextField(15);
+
+    Button pay = new Button("Pay");
+    Button clear = new Button("Clear");
+    Button receipt = new Button("Receipt");
+
+    FeeService service = new FeeService();
+
+    public FeeWindow() {
+
+        setTitle("Student Fee Payment");
+        setLayout(new FlowLayout());
+
+        add(new Label("Register Number"));
+        add(regNo);
+
+        add(new Label("Amount"));
+        add(amount);
+
+        add(pay);
+        add(clear);
+        add(receipt);
+
+        pay.addActionListener(e -> {
+            try {
+                String id = regNo.getText().trim();
+                double a = Double.parseDouble(amount.getText());
+
+                if (id.isEmpty() || a <= 0)
+                    throw new Exception();
+
+                boolean result = service.pay(id, a);
+
+                showMessage(result ?
+                    "Payment Successful" : "Payment Failed");
+
+            } catch (Exception ex) {
+                showMessage("Enter Valid Details");
+            }
+        });
+
+        clear.addActionListener(e -> {
+            regNo.setText("");
+            amount.setText("");
+        });
+
+        receipt.addActionListener(e ->
+            showMessage("Receipt Selected")
+        );
+
+        addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                dispose();
+            }
+        });
+
+        setSize(350, 250);
+        setVisible(true);
+    }
+
+    void showMessage(String msg) {
+        new Dialog(this, msg, true).setVisible(true);
+    }
+
+    public static void main(String[] args) {
+        new FeeWindow();
+    }
+}
