@@ -1,0 +1,88 @@
+import javax.swing.*;
+import java.awt.*;
+
+public class LibrarySearch extends JFrame {
+
+    JTextField search = new JTextField(15);
+
+    JComboBox<String> category = new JComboBox<>(
+        new String[]{"All", "Java", "Python", "C++"}
+    );
+
+    JTextArea results = new JTextArea();
+
+    JLabel status = new JLabel("Ready");
+
+    public LibrarySearch() {
+
+        setTitle("Campus Library Search");
+        setLayout(new BorderLayout());
+
+        JPanel top = new JPanel(new FlowLayout());
+
+        JButton searchBtn = new JButton("Search");
+
+        top.add(new JLabel("Library Search"));
+        top.add(search);
+        top.add(category);
+        top.add(searchBtn);
+
+        results.setEditable(false);
+        results.setText("Search Results");
+
+        JPanel bottom = new JPanel(new BorderLayout());
+
+        JPanel buttons = new JPanel(new FlowLayout());
+
+        JButton prev = new JButton("Prev");
+        JButton next = new JButton("Next");
+        JButton reserve = new JButton("Reserve");
+
+        buttons.add(prev);
+        buttons.add(next);
+        buttons.add(reserve);
+
+        bottom.add(buttons, BorderLayout.CENTER);
+        bottom.add(status, BorderLayout.SOUTH);
+
+        searchBtn.addActionListener(e -> {
+            String text = search.getText().trim();
+
+            if (text.isEmpty()) {
+                status.setText("Enter Search Text");
+            } else {
+                results.setText(
+                    "Searching: " + text +
+                    "\nCategory: " + category.getSelectedItem()
+                );
+
+                status.setText("Search Completed");
+            }
+        });
+
+        prev.addActionListener(e ->
+            status.setText("Previous Page")
+        );
+
+        next.addActionListener(e ->
+            status.setText("Next Page")
+        );
+
+        reserve.addActionListener(e ->
+            status.setText("Book Reserved")
+        );
+
+        add(top, BorderLayout.NORTH);
+        add(new JScrollPane(results), BorderLayout.CENTER);
+        add(bottom, BorderLayout.SOUTH);
+
+        setSize(600, 400);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(LibrarySearch::new);
+    }
+}
